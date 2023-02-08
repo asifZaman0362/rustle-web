@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rustle</title>
+    <style>
+        html, body {
+            padding: 0;
+            margin: 0;
+            background: black;
+            color: white;
+        }
+        #grid-container {
+            display: flex;
+            flex-direction: column;
+            row-gap: 10px;
+        }
+        .row {
+            display: flex;
+            flex-direction: row;
+            column-gap: 10px;
+        }
+        .letter {
+            width: 60px;
+            height: 60px;
+            border: 2px solid gray;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .letter.correct {
+            background-color: green;
+        }
+        .letter.wrong {
+            background-color: lightslategray;
+        }
+        .letter.misplaced {
+            background-color: rgb(168, 168, 87);
+        }
+        .letter span {
+            font-weight: bold;
+            font-family: sans-serif;
+            font-size: 42px;
+        }
+    </style>
+</head>
+<body>
+    <div id="topbar">
+        <h1 id="title">Rustle</h1>
+    </div>
+    <div id="grid-container">
+        
+    </div>
+    <div id="keyboard"></div>
+    <script>
+
+        const ROWS = 6;
+        const COLS = 5;
+        let guess = "";
+        let letters = [];
+        let x = 0, y = 0;
+
+        function generateDom() {
+            let grid_container = document.getElementById("grid-container");
+            for (let i = 0; i < ROWS; i++) {
+                let row = document.createElement("div");
+                let this_row = [];
+                row.className = "row";
+                for (let j = 0; j < COLS; j++) {
+                    let letter = document.createElement("div");
+                    letter.className = "letter";
+                    let inner = document.createElement("span");
+                    this_row.push(inner);
+                    letter.appendChild(inner);
+                    row.appendChild(letter);
+                }
+                letters.push(this_row);
+                grid_container.appendChild(row);
+            }
+        }
+        
+        function addLetter(char) {
+            if (guess.length < 5) {
+                guess += char;
+                letters[y][x].innerHTML = char.toUpperCase();
+                x++;
+            }
+        }
+        
+        function setWords(jsonData) {
+            guess = "";
+            for (let letter of jsonData.Ok) {
+                let i = letter.position;
+                switch (letter.e_type) {
+                    case "Misplaced": {
+                        letters[y][i].parentElement.classList.add('misplaced')
+                    }
+                    case "Wrong": {
+                        letters[y][i].parentElement.classList.add('wrong')
+                    }
+                    case "Correct": {
+                        letters[y][i].parentElement.classList.add('correct')
+                    }
+                }
+            }
+            y++;
+            x = 0;
+        }
+        
+        function submitWord() {
+            if (guess.length == 5) {
+                fetch("http://localhost:8000/submit/" + guess)
+                .then((res) => {
+                    return res.json();
+                })
+                .then((json) => setWords(json))
+                .catch((err) => console.error(err));
+            }
+        }
+        
+        function removeLetter() {
+            if (guess.length == 0) return;
+            guess = guess.substring(0, guess.length - 1);
+            letters[y][--x].innerHTML = "";
+        }
+
+        function onKeyPress(event) {
+            let regex = new RegExp("[a-zA-Z]");
+            if (event.key.length == 1 && event.key.match(regex) != null) {
+                addLetter(event.key);
+            } else if (event.key == "Backspace") {
+                removeLetter();
+            } else if (event.key == "Enter") {
+                submitWord();
+            }
+        }
+        
+        document.onkeydown = onKeyPress;
+
+        generateDom();
+
+    </script>
+</body>
+</html>
