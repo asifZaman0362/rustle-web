@@ -1,18 +1,33 @@
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize)]
+pub enum GuessResult {
+    MaxGuess(Guess),
+    Guess(Guess),
+    Won(Guess, u8)
+}
+
+#[derive(Serialize)]
+pub enum GuessError {
+    LengthError,
+    NonexistentWordError,
+    GuessLimitReached,
+}
+
+#[derive(Serialize, Clone, Copy)]
 pub enum EntryType {
     Correct,
     Misplaced,
     Wrong,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone, Copy)]
 pub struct Entry {
     letter: char,
     position: usize,
     e_type: EntryType,
 }
+
 
 impl Entry {
     pub fn new(letter: char, position: usize, e_type: EntryType) -> Self {
@@ -39,9 +54,17 @@ impl Game {
         }
     }
 
-    pub fn submit_guess(&mut self, input: &String) -> Result<Guess, ()> {
+    pub fn restart(&mut self, word: &String) {
+        self.answer = word.to_string();
+        self.guesses.clear();
+    }
+
+    pub fn submit_guess(&mut self, input: &String) -> Result<GuessResult, GuessError> {
+        if self.guesses.len() >= 6 {
+            return Err(GuessError::GuessLimitReached);
+        }
         if input.len() != self.answer.len() {
-            return Err(())
+            return Err(GuessError::LengthError)
         }
         let upper = self.answer.to_uppercase().chars().collect::<Vec<char>>();
         let guess = input.to_uppercase().chars().collect::<Vec<char>>();
@@ -75,6 +98,13 @@ impl Game {
                 matches.push(Entry::new(*a, i, EntryType::Wrong));
             }
         }
-        Ok(matches)
+        self.guesses.push(matches.clone());
+        if filter.len() == 5 {
+            return Ok(GuessResult::Won(matches, self.guesses.len() as u8));
+        } else if self.guesses.len() == 6 {
+            return Ok(GuessResult::MaxGuess(matches));
+        } else {
+            return Ok(GuessResult::Guess(matches));
+        }
     } 
 }

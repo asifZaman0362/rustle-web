@@ -56,11 +56,31 @@ async fn index(req: HttpRequest, data: Data<AppState>) -> impl Responder {
     }
 }
 
+#[get("/restart")]
+async fn restart(req: HttpRequest, data: Data<AppState>) -> impl Responder {
+    if let Some(cookie) = req.cookie("id") {
+        if let Some(game) = data.games.lock().unwrap().get_mut(cookie.value()) {
+            let rnd_idx = rand::thread_rng().gen_range(0..data.dict.len());
+            let word = &data.dict[rnd_idx];
+            game.restart(word);
+            return HttpResponse::Ok().body("");
+        } else {
+            HttpResponse::Ok().body("")
+        }
+    } else {
+        HttpResponse::BadRequest().body("not in game!")
+    }
+}
+
 #[get("/submit/{word}")]
 async fn submit(req: HttpRequest, path: Path<String>, data: Data<AppState>) -> impl Responder {
     if let Some(cookie) = req.cookie("id") {
         if let Some(game) = data.games.lock().unwrap().get_mut(cookie.value()) {
-            let result = game.submit_guess(&path.into_inner());
+            let word = path.into_inner();
+            if let Err(_) = data.dict.binary_search(&word.to_uppercase()) {
+                return HttpResponse::Ok().json(Err::<(), game::GuessError>(game::GuessError::NonexistentWordError));
+            }
+            let result = game.submit_guess(&word);
             println!("{}", game.answer);
             return HttpResponse::Ok().json(result);
         } else {
