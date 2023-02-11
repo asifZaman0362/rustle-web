@@ -13,9 +13,13 @@ use std::io::{BufRead, BufReader};
 use std::sync::Mutex;
 use uuid::Uuid;
 use futures_util::future::FutureExt;
+use rusqlite::Connection;
 
 mod game;
+mod database;
+
 use game::Game;
+use database::{ get_stats, put_stats, open_database, Stats };
 
 type GamesList = Mutex<HashMap<String, Game>>;
 type Dictionary = Vec<String>;
@@ -23,6 +27,7 @@ type Dictionary = Vec<String>;
 struct AppState {
     dict: Dictionary,
     games: GamesList,
+    connection: Mutex<Connection>,
 }
 
 #[get("/")]
@@ -53,6 +58,33 @@ async fn index(req: HttpRequest, data: Data<AppState>) -> impl Responder {
         let mut response = HttpResponse::Ok().body(contents);
         response.add_cookie(&cookie).unwrap();
         response
+    }
+}
+
+#[get("/state")]
+async fn get_state(req: HttpRequest, data: Data<AppState>) -> impl Responder {
+    if let Some(cookie) = req.cookie("id") {
+        if let Some(game) = data.games.lock().unwrap().get_mut(cookie.value()) {
+            let guesses = &game.guesses;
+            return HttpResponse::Ok().json(Ok::<&Vec<Vec<game::Entry>>, &'static str>(guesses));
+        } else {
+            return HttpResponse::Ok().json(Err::<&Vec<Vec<game::Entry>>, &'static str>("not in game"));
+        }
+    } else {
+        return HttpResponse::BadRequest().json(Err::<&Vec<Vec<game::Entry>>, &'static str>("unregistered"));
+    }
+}
+
+#[get("/stats")]
+async fn stats(req: HttpRequest, data: Data<AppState>) -> impl Responder {
+    if let Some(cookie) = req.cookie("id") {
+        let connection = data.connection.lock().unwrap();
+        match get_stats(cookie.value(), &connection) {
+            Ok(stats) => HttpResponse::Ok().json(Ok::<Stats, String>(stats)),
+            Err(err) => HttpResponse::Ok().json(Err::<Stats, String>(err.to_string()))
+        }
+    } else {
+        HttpResponse::BadRequest().json(Err::<Stats, String>("unregistered".to_string()))
     }
 }
 
@@ -100,13 +132,15 @@ async fn main() -> std::io::Result<()> {
         dict.push(line?);
     }
     let games = Mutex::new(HashMap::new());
-    let data = Data::new(AppState { dict, games });
+    let connection = Mutex::new(open_database("database.db"));
+    let data = Data::new(AppState { dict, games, connection });
     HttpServer::new(move || {
         App::new()
             .app_data(data.clone())
             .wrap(Logger::default())
             .service(index)
             .service(submit)
+            .service(get_state)
     })
     .bind(("localhost", 8000))
     .unwrap()

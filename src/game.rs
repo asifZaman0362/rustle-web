@@ -12,6 +12,7 @@ pub enum GuessError {
     LengthError,
     NonexistentWordError,
     GuessLimitReached,
+    GameOver,
 }
 
 #[derive(Serialize, Clone, Copy)]
@@ -44,6 +45,7 @@ pub type Guess = Vec<Entry>;
 pub struct Game {
     pub answer: String,
     pub guesses: Vec<Guess>,
+    pub win: bool,
 }
 
 impl Game {
@@ -51,6 +53,7 @@ impl Game {
         Game {
             answer: word.to_owned(),
             guesses: vec![],
+            win: false
         }
     }
 
@@ -60,6 +63,9 @@ impl Game {
     }
 
     pub fn submit_guess(&mut self, input: &String) -> Result<GuessResult, GuessError> {
+        if self.win {
+            return Err(GuessError::GameOver);
+        }
         if self.guesses.len() >= 6 {
             return Err(GuessError::GuessLimitReached);
         }
@@ -100,6 +106,7 @@ impl Game {
         }
         self.guesses.push(matches.clone());
         if filter.len() == 5 {
+            self.win = true;
             return Ok(GuessResult::Won(matches, self.guesses.len() as u8));
         } else if self.guesses.len() == 6 {
             return Ok(GuessResult::MaxGuess(matches));
