@@ -35,7 +35,6 @@
                 -2px  2px 0 #fff,
                 -2px  0   0 #fff;
             font-weight: bold;
-            
             font-size: 24px;
         }
         #grid-wrapper {
@@ -94,9 +93,7 @@
             width: 100%;
             display: flex;
             justify-content: center;
-            top: 80px;
-            position: absolute;
-            opacity: 0;
+            top: 80px; position: absolute; opacity: 0;
             transition: opacity 0.5s ease-in-out;
         }
         #toast span {
@@ -152,7 +149,7 @@
             }
         }
         #statsparent {
-            visibility: visible;
+            /*visibility: visible;*/
             position: absolute;
             top: 0;
             left: 0;
@@ -163,6 +160,12 @@
             backdrop-filter: blur(10px);
             justify-content: center;
             align-items: center;
+        }
+        .shown {
+            visibility: visible;
+        }
+        .hidden {
+            visibility: hidden;
         }
         #stats {
             width: 500px;
@@ -215,7 +218,7 @@
             display: inline-block;
             border-radius: 5px;
             border-bottom: 3px solid rgb(60, 82, 16);
-            transition: 0.5s;
+            transition: transform 0.5s;
             font-family: 'IBM Plex Sans';
             font-weight: 600;
         }
@@ -334,24 +337,24 @@
         <div id="grid-container">
         </div>
     </div>
-    <div id="statsparent">
+    <div id="statsparent" class="hidden">
         <div id="stats">
             <h3>statistics</h3>
             <ul class="overall">
                 <li>
-                    <h2>0</h2>
+                    <h2 id="played">0</h2>
                     <span>played</span>
                 </li>
                 <li>
-                    <h2>0</h2>
+                    <h2 id="win">0</h2>
                     <span>win %</span>
                 </li>
                 <li>
-                    <h2>0</h2>
+                    <h2 id="streak-curr">0</h2>
                     <span>current streak</span>
                 </li>
                 <li>
-                    <h2>0</h2>
+                    <h2 id="streak-max">0</h2>
                     <span>max streak</span>
                 </li>
             </ul>
@@ -360,42 +363,42 @@
                 <li>
                     <div class="bar">
                         <label for="ones">1</label>
-                        <span>0</span>
+                        <span id="ones_label">0</span>
                         <input type="range" name="ones" id="ones">
                     </div>
                 </li>
                 <li>
                     <div class="bar">
                         <label for="twos">2</label>
-                        <span>0</span>
+                        <span id="twos_label">0</span>
                         <input type="range" name="twos" id="twos">
                     </div>
                 </li>
                 <li>
                     <div class="bar">
                         <label for="threes">3</label>
-                        <span>0</span>
+                        <span id="threes_label">0</span>
                         <input type="range" name="threes" id="threes">
                     </div>
                 </li>
                 <li>
                     <div class="bar">
                         <label for="fours">4</label>
-                        <span>0</span>
+                        <span id="fours_label">0</span>
                         <input type="range" name="fours" id="fours">
                     </div>
                 </li>
                 <li>
                     <div class="bar">
                         <label for="fives">5</label>
-                        <span>0</span>
+                        <span id="fives_label">0</span>
                         <input type="range" name="fives" id="fives">
                     </div>
                 </li>
                 <li>
                     <div class="bar">
                         <label for="sixes">6</label>
-                        <span>0</span>
+                        <span id="sixes_label">0</span>
                         <input type="range" name="sixes" id="sixes">
                     </div>
                 </li>
@@ -430,13 +433,74 @@
             "Passable",
             "Whew!"
         ];
-        
+
         function showStats() {
-            
+            document.getElementById("statsparent").classList.replace("hidden", "shown");
+            let played = document.getElementById('played');
+            let win = document.getElementById('win');
+            let streak_curr = document.getElementById('streak-curr');
+            let streak_max = document.getElementById('streak-max');
+            let ones = document.getElementById('ones');
+            let twos = document.getElementById('twos');
+            let threes = document.getElementById('threes');
+            let fives = document.getElementById('fives');
+            let fours = document.getElementById('fours');
+            let sixes = document.getElementById('sixes');
+            let ones_label = document.getElementById('ones_label');
+            let twos_label = document.getElementById('twos_label');
+            let threes_label = document.getElementById('threes_label');
+            let fives_label = document.getElementById('fives_label');
+            let fours_label = document.getElementById('fours_label');
+            let sixes_label = document.getElementById('sixes_label');
+            let freq = [];
+            fetch("http://localhost:8000/stats")
+                .then((res) => res.json())
+                .then((json) => {
+                    if (json.Ok) {
+                        console.log(json.Ok);
+                        const data = json.Ok;
+                        played.innerHTML = data.played;
+                        win.innerHTML = (parseInt(data.won) / parseInt(data.played)) * 100;
+                        streak_curr.innerHTML = data.streak_current;
+                        streak_max.innerHTML = data.streak_max;
+                        ones_label.innerHTML = data.frequency[0];
+                        twos_label.innerHTML = data.frequency[1];
+                        threes_label.innerHTML = data.frequency[2];
+                        fours_label.innerHTML = data.frequency[3];
+                        fives_label.innerHTML = data.frequency[4];
+                        sixes_label.innerHTML = data.frequency[5];
+                        let heights = normalise_values(data.frequency);
+                        ones.value = 5 + heights[0];
+                        twos.value = 5 + heights[1];
+                        threes.value = 5 + heights[2];
+                        fours.value = 5 + heights[3];
+                        fives.value = 5 + heights[4];
+                        sixes.value = 5 + heights[5];
+                    }
+                })
+                .catch((err) => console.log(err));
         }
-        
-        function hideStats() {
-            
+
+        function normalise_values(values) {
+            let highest = 0;
+            values.forEach((x) => { if (x > highest) highest = x });
+            result = [];
+            for (let val of values) {
+                result.push(val / highest * 90);
+            }
+            return result;
+        }
+
+        function closePanel() {
+            document.getElementById("statsparent").classList.replace("shown", "hidden");
+        }
+
+        function restart() {
+            fetch("http://localhost:8000/restart")
+                .then((data) => {
+                    window.location = "http://localhost:8000";
+                })
+                .catch((err) => console.error(err));
         }
 
         function generateDom(){
@@ -461,7 +525,7 @@
             }
             createKeyboard();
         }
-        
+
         function addLetter(char) {
             if (guess.length < 5) {
                 guess += char;
@@ -469,7 +533,7 @@
                 x++;
             }
         }
-        
+
         function createKeyboard() {
             const keys = [ "qwertyuiop<", "asdfghjkl>", "zxcvbnm"];
             let keeb = document.getElementById("keyboard");
@@ -546,15 +610,17 @@
                     setLetters(json.Ok.Guess);
                 } else if (json.Ok.MaxGuess) {
                     showToast("Maximum number of guesses reached!");
+                    showStats();
                 } else if (json.Ok.Won) {
                     setLetters(json.Ok.Won[0]);
                     showToast(endMessages[json.Ok.Won[1]]);
+                    showStats();
                 }
             } else if (json.Err) {
                 showToast(json.Err);
             }
         }
-        
+
         function submitWord() {
             if (guess.length == 5) {
                 fetch("http://localhost:8000/submit/" + guess)
@@ -565,7 +631,7 @@
                 .catch((err) => console.error(err));
             }
         }
-        
+
         function removeLetter() {
             if (guess.length == 0) return;
             guess = guess.substring(0, guess.length - 1);
@@ -582,7 +648,7 @@
                 submitWord();
             }
         }
-       
+
         function fetchState() {
             fetch("http://localhost:8000/state")
             .then((res) => res.json())
@@ -596,7 +662,7 @@
             })
             .catch((err) => console.err(err));
         }
-        
+
         document.onkeydown = onKeyPress;
 
         generateDom();

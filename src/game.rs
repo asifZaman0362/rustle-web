@@ -60,6 +60,7 @@ impl Game {
     pub fn restart(&mut self, word: &String) {
         self.answer = word.to_string();
         self.guesses.clear();
+        self.win = false;
     }
 
     pub fn submit_guess(&mut self, input: &String) -> Result<GuessResult, GuessError> {

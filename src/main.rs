@@ -19,7 +19,7 @@ mod game;
 mod database;
 
 use game::Game;
-use database::{ get_stats, put_stats, open_database, Stats };
+use database::{ get_stats, add_win, add_loss, open_database, Stats };
 
 type GamesList = Mutex<HashMap<String, Game>>;
 type Dictionary = Vec<String>;
@@ -113,6 +113,17 @@ async fn submit(req: HttpRequest, path: Path<String>, data: Data<AppState>) -> i
                 return HttpResponse::Ok().json(Err::<(), game::GuessError>(game::GuessError::NonexistentWordError));
             }
             let result = game.submit_guess(&word);
+            if let Ok(res) = &result {
+                match res {
+                    game::GuessResult::Won(..) => {
+                        add_win(cookie.value(), &mut data.connection.lock().unwrap(), game.guesses.len()).unwrap();
+                    },
+                    game::GuessResult::MaxGuess(_) => {
+                        add_loss(cookie.value(), &mut data.connection.lock().unwrap()).unwrap();
+                    },
+                    _ => {}
+                }
+            }
             println!("{}", game.answer);
             return HttpResponse::Ok().json(result);
         } else {
@@ -141,6 +152,8 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(submit)
             .service(get_state)
+            .service(stats)
+            .service(restart)
     })
     .bind(("localhost", 8000))
     .unwrap()

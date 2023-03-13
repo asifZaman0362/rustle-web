@@ -25,7 +25,7 @@ where
 }
 
 pub fn get_stats(id: &str, conn: &Connection) -> Result<Stats> {
-    let mut statement = conn.prepare("SELECT (played, won, streak_curr, streak_max, ones, twos, threes, fours, fives, sixes) FROM stats WHERE id = ?")?;
+    let mut statement = conn.prepare("SELECT played, won, streak_curr, streak_max, ones, twos, threes, fours, fives, sixes FROM stats WHERE id = ?")?;
     match statement.query_row([id], |row| {
         let played: i32 = row.get(0)?;
         let won: i32 = row.get(1)?;
@@ -48,8 +48,8 @@ pub fn get_stats(id: &str, conn: &Connection) -> Result<Stats> {
     }) {
         Ok(stats) => Ok(stats),
         Err(rusqlite::Error::QueryReturnedNoRows) => {
-            let mut statement = conn.prepare("INSERT INTO stats VALUES(?)")?;
-            statement.execute([id])?;
+            let mut statement = conn.prepare("INSERT INTO stats VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)")?;
+            statement.execute((id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))?;
             Ok(Stats { played: 0, won: 0, streak_current: 0, streak_max: 0, frequency: [0i32; 6] })
         },
         Err(err) => Err(err)
@@ -71,4 +71,29 @@ pub fn put_stats(id: &str, conn: &Connection, stats: &Stats) -> Result<usize> {
         stats.frequency[5],
         id,
     ))
+}
+
+pub fn add_win(id: &str, conn: &mut Connection, attempts: usize) -> Result<usize> {
+    let mut stats = get_stats(id, conn)?;
+    stats.played += 1;
+    stats.won += 1;
+    stats.streak_current += 1;
+    if stats.streak_current > stats.streak_max {
+        stats.streak_max = stats.streak_current;
+    }
+    if attempts < 1 || attempts > 6 {
+        return Err(rusqlite::Error::IntegralValueOutOfRange(5, attempts as i64));
+    } else {
+        stats.frequency[(attempts - 1) as usize] += 1;
+    }
+    return put_stats(id, conn, &stats);
+}
+
+pub fn add_loss(id: &str, conn: &mut Connection) -> Result<usize> {
+    if let Ok(mut stats) = get_stats(id, conn) {
+        stats.played += 1;
+        stats.streak_current = 0;
+        return put_stats(id, conn, &stats);
+    }
+    return Err(rusqlite::Error::QueryReturnedNoRows);
 }
