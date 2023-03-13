@@ -1,6 +1,3 @@
-Intel
-Mitch
-Peggy
 abbey
 about
 above
@@ -438,6 +435,7 @@ incur
 index
 inner
 input
+Intel
 inter
 irony
 issue
@@ -520,6 +518,7 @@ midst
 might
 minor
 minus
+Mitch
 mixed
 model
 modem
@@ -591,6 +590,7 @@ patio
 pause
 peace
 pearl
+Peggy
 penny
 perry
 peter

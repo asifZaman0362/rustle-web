@@ -26,6 +26,7 @@ type Dictionary = Vec<String>;
 
 struct AppState {
     dict: Dictionary,
+    possible: Dictionary,
     games: GamesList,
     connection: Mutex<Connection>,
 }
@@ -109,7 +110,7 @@ async fn submit(req: HttpRequest, path: Path<String>, data: Data<AppState>) -> i
     if let Some(cookie) = req.cookie("id") {
         if let Some(game) = data.games.lock().unwrap().get_mut(cookie.value()) {
             let word = path.into_inner();
-            if let Err(_) = data.dict.binary_search(&word.to_uppercase()) {
+            if let Err(_) = data.possible.binary_search(&word.to_uppercase()) {
                 return HttpResponse::Ok().json(Err::<(), game::GuessError>(game::GuessError::NonexistentWordError));
             }
             let result = game.submit_guess(&word);
@@ -142,9 +143,15 @@ async fn main() -> std::io::Result<()> {
     for line in reader.lines() {
         dict.push(line?);
     }
+    let mut possible = vec![];
+    let possible_words_file = std::fs::File::open("possible.txt")?;
+    let reader = BufReader::new(&possible_words_file);
+    for line in reader.lines() {
+        possible.push(line?);
+    }
     let games = Mutex::new(HashMap::new());
     let connection = Mutex::new(open_database("database.db"));
-    let data = Data::new(AppState { dict, games, connection });
+    let data = Data::new(AppState { dict, possible, games, connection });
     HttpServer::new(move || {
         App::new()
             .app_data(data.clone())
