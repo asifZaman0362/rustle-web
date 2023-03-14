@@ -23,6 +23,8 @@
             margin: 0 0 60px;
             top: 30px;
             position: relative;
+        }
+        #title {
             color: #ff5c00;
             font-family: 'IBM Plex Sans';
             text-shadow:
@@ -35,7 +37,7 @@
                 -2px  2px 0 #fff,
                 -2px  0   0 #fff;
             font-weight: bold;
-            font-size: 24px;
+            font-size: 48px;
         }
         #grid-wrapper {
             display: flex;
@@ -58,8 +60,8 @@
             column-gap: 5px;
         }
         .letter {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border-bottom: 3px solid rgb(159, 159, 159);
             background-color: white;
             display: flex;
@@ -305,11 +307,11 @@
         
         .key {
             width: 40px;
-            height: 65px;
+            height: 55px;
             background-color: #D9D9D9;
             border-bottom: 3px solid #646464;
             border-radius: 5px;
-            line-height: 65px;
+            line-height: 55px;
             text-align: center;
             font-family: 'IBM Plex Mono';
             color: black;
@@ -322,6 +324,15 @@
             translate: 0 2px;
             border-bottom: 0px;
         }
+
+        @media screen and (max-width: 600px) {
+            .key {
+                width: 30px;
+                height: 40px;
+                font-size: 24px;
+                line-height: 40px;
+            }
+        }
         
 
     </style>
@@ -332,6 +343,14 @@
     </div>
     <div id="topbar">
         <h1 id="title">Rustle</h1>
+        <div class="button-bar" style="display: inline-block">
+            <div class="button" onclick="showStats()">
+                <span>stats</span>
+            </div>
+            <div class="button" onclick="restart()">
+                <span>restart</span>
+            </div>
+        </div>
     </div>
     <div id="grid-wrapper">
         <div id="grid-container">
@@ -460,7 +479,12 @@
                         console.log(json.Ok);
                         const data = json.Ok;
                         played.innerHTML = data.played;
-                        win.innerHTML = (parseInt(data.won) / parseInt(data.played)) * 100;
+                        if (data.played == '0') {
+                            win.innerHTML = '0';
+                        }
+                        else {
+                            win.innerHTML = (parseInt(data.won) / parseInt(data.played)) * 100;
+                        }
                         streak_curr.innerHTML = data.streak_current;
                         streak_max.innerHTML = data.streak_max;
                         ones_label.innerHTML = data.frequency[0];
@@ -484,6 +508,7 @@
         function normalise_values(values) {
             let highest = 0;
             values.forEach((x) => { if (x > highest) highest = x });
+            if (highest == 0) return [ 0, 0, 0, 0, 0, 0 ];
             result = [];
             for (let val of values) {
                 result.push(val / highest * 90);
@@ -535,7 +560,7 @@
         }
 
         function createKeyboard() {
-            const keys = [ "qwertyuiop<", "asdfghjkl>", "zxcvbnm"];
+            const keys = [ "qwertyuiop", "asdfghjkl>", "zxcvbnm<" ];
             let keeb = document.getElementById("keyboard");
             for (let i = 0; i < keys.length; i++) {
                 let row = document.createElement("div");
