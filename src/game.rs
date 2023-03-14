@@ -1,10 +1,10 @@
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
 
 #[derive(Serialize)]
 pub enum GuessResult {
     MaxGuess(Guess),
     Guess(Guess),
-    Won(Guess, u8)
+    Won(Guess, u8),
 }
 
 #[derive(Serialize)]
@@ -29,7 +29,6 @@ pub struct Entry {
     e_type: EntryType,
 }
 
-
 impl Entry {
     pub fn new(letter: char, position: usize, e_type: EntryType) -> Self {
         Entry {
@@ -53,7 +52,7 @@ impl Game {
         Game {
             answer: word.to_owned(),
             guesses: vec![],
-            win: false
+            win: false,
         }
     }
 
@@ -71,7 +70,7 @@ impl Game {
             return Err(GuessError::GuessLimitReached);
         }
         if input.len() != self.answer.len() {
-            return Err(GuessError::LengthError)
+            return Err(GuessError::LengthError);
         }
         let upper = self.answer.to_uppercase().chars().collect::<Vec<char>>();
         let guess = input.to_uppercase().chars().collect::<Vec<char>>();
@@ -92,7 +91,7 @@ impl Game {
             }
             let mut found = false;
             for (j, b) in upper.iter().enumerate() {
-                if *a == *b && !mask.contains(&j) && !filter.contains(&j)  {
+                if *a == *b && !mask.contains(&j) && !filter.contains(&j) {
                     matches.push(Entry::new(*a, i, EntryType::Misplaced));
                     mask.push(j);
                     found = true;
@@ -114,5 +113,5 @@ impl Game {
         } else {
             return Ok(GuessResult::Guess(matches));
         }
-    } 
+    }
 }

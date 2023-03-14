@@ -1,6 +1,6 @@
-use rusqlite::{Connection, Result, Statement};
-use std::path::Path;
+use rusqlite::{Connection, Result};
 use serde::Serialize;
+use std::path::Path;
 
 #[derive(Serialize)]
 pub struct Stats {
@@ -15,7 +15,7 @@ pub fn open_database<P>(url: P) -> Connection
 where
     P: AsRef<Path>,
 {
-    let mut conn = Connection::open(url).unwrap();
+    let conn = Connection::open(url).unwrap();
     conn.execute(
         "CREATE TABLE IF NOT EXISTS stats 
             (id TEXT PRIMARY KEY, played INTEGER, won INTEGER, streak_curr INTEGER, streak_max INTEGER, 
@@ -48,11 +48,19 @@ pub fn get_stats(id: &str, conn: &Connection) -> Result<Stats> {
     }) {
         Ok(stats) => Ok(stats),
         Err(rusqlite::Error::QueryReturnedNoRows) => {
-            let mut statement = conn.prepare("INSERT INTO stats VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)")?;
+            let mut statement = conn.prepare(
+                "INSERT INTO stats VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            )?;
             statement.execute((id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))?;
-            Ok(Stats { played: 0, won: 0, streak_current: 0, streak_max: 0, frequency: [0i32; 6] })
-        },
-        Err(err) => Err(err)
+            Ok(Stats {
+                played: 0,
+                won: 0,
+                streak_current: 0,
+                streak_max: 0,
+                frequency: [0i32; 6],
+            })
+        }
+        Err(err) => Err(err),
     }
 }
 

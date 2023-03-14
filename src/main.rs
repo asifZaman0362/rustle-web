@@ -1,18 +1,16 @@
 use actix_web::{
     self,
-    cookie::{self, time::Duration, Cookie},
-    get, post,
+    cookie::{ time::Duration, Cookie},
+    get,
     middleware::Logger,
     web::{Data, Path},
-    App, HttpRequest, HttpResponse, HttpServer, Responder, Error
+    App, HttpRequest, HttpResponse, HttpServer, Responder
 };
-use serde_json;
 use rand::Rng;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 use std::sync::Mutex;
 use uuid::Uuid;
-use futures_util::future::FutureExt;
 use rusqlite::Connection;
 
 mod game;
